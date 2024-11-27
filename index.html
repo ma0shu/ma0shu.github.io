@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Access-Control-Allow-Origin" content="*">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据展示</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .hidden {
+            display: none;
+        }
+        #data-table, #freq-table {
+            margin-bottom: 20px;
+        }
+        .button {
+            padding: 5px 10px;
+            margin: 2px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        #freq-table th {
+            background-color: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <h1>数据展示</h1>
+    <div>
+        <input type="text" id="search-input" placeholder="搜索标题或简介">
+        <button onclick="sortTable()">按下载数排序</button>
+    </div>
+    <table id="data-table">
+        <thead>
+            <tr>
+                <th>UUID</th>
+                <th>标题</th>
+                <th>简介</th>
+                <th>点赞</th>
+                <th>差评</th>
+                <th>下载数</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <table id="freq-table" class="hidden">
+        <thead>
+            <tr>
+                <th>频率 (frequency)</th>
+                <th>Q值 (q)</th>
+                <th>增益 (gain)</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <script>
+        const apiUrl = "https://kaigai.cdn.moondroplab.tech/";
+        let jsonData = [];
+        let sorted = false;
+
+        async function loadJSON() {
+            const response = await fetch('https://raw.kkgithub.com/ma0shu/Mytune/main/data.json'); // 替换为实际的 JSON 文件路径
+            jsonData = await response.json();
+            displayTable(jsonData);
+        }
+
+        function displayTable(data) {
+            const tbody = document.getElementById("data-table").querySelector("tbody");
+            tbody.innerHTML = "";
+            data.forEach(item => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${item.uuid}</td>
+                    <td>${item.title}</td>
+                    <td>${item.desc}</td>
+                    <td>${item.like}</td>
+                    <td>${item.dislike}</td>
+                    <td>${item.downloadcount}</td>
+                    <td>
+                        <a class="button" href="${apiUrl}${item.file}" download>下载</a>
+                        <button class="button" onclick="loadFile('${apiUrl}${item.file}')">显示</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function loadFile(url) {
+            const response = await fetch(url);
+            const data = await response.json();
+            displayFrequencyTable(data);
+        }
+
+        function displayFrequencyTable(data) {
+            const freqTable = document.getElementById("freq-table");
+            const tbody = freqTable.querySelector("tbody");
+            tbody.innerHTML = "";
+            data.forEach(item => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${item.frequency}</td>
+                    <td>${item.q}</td>
+                    <td>${item.gain}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            freqTable.classList.remove("hidden");
+        }
+
+        document.getElementById("search-input").addEventListener("input", (event) => {
+            const query = event.target.value.toLowerCase();
+            const filteredData = jsonData.filter(item => 
+                item.title.toLowerCase().includes(query) || 
+                item.desc.toLowerCase().includes(query)
+            );
+            displayTable(filteredData);
+        });
+
+        function sortTable() {
+            sorted = !sorted;
+            const sortedData = [...jsonData].sort((a, b) => {
+                return sorted 
+                    ? b.downloadcount - a.downloadcount 
+                    : a.downloadcount - b.downloadcount;
+            });
+            displayTable(sortedData);
+        }
+
+        loadJSON();
+    </script>
+</body>
+</html>
